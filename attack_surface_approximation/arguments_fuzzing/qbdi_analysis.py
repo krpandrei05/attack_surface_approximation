@@ -130,10 +130,14 @@ class QBDIAnalysis:
         )
 
         self.__container.exec_run(
+            "rm -f CMakeCache.txt libqbdi_tracer.so",
+            workdir=self.__configuration.CONTAINER_SO_FOLDER,
+        )
+        cmake_result = self.__container.exec_run(
             "cmake .",
             workdir=self.__configuration.CONTAINER_SO_FOLDER,
         )
-        self.__container.exec_run(
+        make_result = self.__container.exec_run(
             "make",
             workdir=self.__configuration.CONTAINER_SO_FOLDER,
         )
