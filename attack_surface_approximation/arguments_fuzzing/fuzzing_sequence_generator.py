@@ -78,14 +78,15 @@ class FuzzingSequenceGenerator:
     ) -> ArgumentsGenerator:
         arg = FileArgument(self.canary_filename)
         yield arg
-        if ArgumentRole.FILE_ENABLER not in arg.get_roles_based_on_analysis(
-            self.last_analysis_result, bbs_hashes_baseline
-        ):
-            for argument in self.arguments:
-                yield ArgumentPlusFileArgument(argument, self.canary_filename)
 
         yield ArgumentArgument("-")
 
         for argument in self.arguments:
             yield ArgumentArgument(argument)
             yield ArgumentStringArgument(argument, self.canary_string)
+
+        if ArgumentRole.FILE_ENABLER not in arg.get_roles_based_on_analysis(
+            self.last_analysis_result, bbs_hashes_baseline
+        ):
+            for argument in self.arguments:
+                yield ArgumentPlusFileArgument(argument, self.canary_filename)
