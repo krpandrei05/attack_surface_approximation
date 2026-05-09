@@ -17,6 +17,7 @@
 #define BLOCKS_USED_IN_HASH 10000
 #define MAX_ARGS_LENGTH 100
 #define OUTPUT_FOLDER "results/"
+#define HASH_BUF_SIZE (BLOCKS_USED_IN_HASH * 10) // Enough for 10000 hex ints
 
 /* Structures */
 
@@ -234,16 +235,19 @@ int qbdipreload_on_run(VMInstanceRef vm, rword start, rword stop) {
 
 int qbdipreload_on_exit(int status) {
     FILE *output_file;
-    char hashed[2 * BLOCKS_USED_IN_HASH * sizeof(int)] = {'\0'};
-    char current_hash[2 * sizeof(int)];
+    char *hashed = malloc(HASH_BUF_SIZE);
+    char current_hash[16];
     char output_filename[2 * MAX_ARGS_LENGTH + sizeof(OUTPUT_FOLDER) + 1] = {'\0'};
     int *p;
     int i = 0;
-    char uses_canaries_str;
+
+    if (!hashed) return QBDIPRELOAD_NO_ERROR;
+    memset(hashed, 0, HASH_BUF_SIZE);
 
     // Create the string to be hashed
     for (p = (int*)utarray_front(blocks); p != NULL && i < BLOCKS_USED_IN_HASH; p = (int*)utarray_next(blocks, p), i++) {
-        sprintf(current_hash, "%x", *p);
+        int written = sprintf(current_hash, "%x", *p);
+        if (strlen(hashed) + written >= HASH_BUF_SIZE - 1) break;
         strcat(hashed, current_hash);
     }
 
@@ -251,7 +255,11 @@ int qbdipreload_on_exit(int status) {
     strcat(output_filename, OUTPUT_FOLDER);
     strcat(output_filename, encode_command_line(command_line, strlen(command_line)));
     output_file = fopen(output_filename, "w");
-    fprintf(output_file, "%d %ld %d", utarray_len(blocks), hash(hashed), uses_canaries);
+    if (output_file) {
+        fprintf(output_file, "%d %lu %d", utarray_len(blocks), hash(hashed), uses_canaries);
+        fclose(output_file);
+    }
 
+    free(hashed);
     return QBDIPRELOAD_NO_ERROR;
 }
