@@ -81,7 +81,7 @@ char *encode_command_line(const unsigned char *command, size_t length) {
 static VMAction show_basic_block_callback(VMInstanceRef vm, const VMState* vmState, GPRState* gprState, FPRState* fprState, void* data) {
     size_t start_address, end_address;
     int abstract_address;
-    char parent_segment = -1, i;
+    int parent_segment = -1, i;
 
     // Check if the program reached main
     if (!start_trace) return QBDI_CONTINUE;
@@ -101,6 +101,10 @@ static VMAction show_basic_block_callback(VMInstanceRef vm, const VMState* vmSta
             break;
         }
     }
+
+    // Safety check: if parent segment not found, skip this block
+    if (parent_segment == -1)
+        return QBDI_CONTINUE;
 
     // Compute the abstract address
     start_address -= segments[parent_segment].start;
@@ -188,7 +192,7 @@ int qbdipreload_on_main(int argc, char **argv) {
 void get_segments() {
     qbdi_MemoryMap *maps;
     size_t maps_count;
-    int i;
+    int i, j = 0;
 
     // Get the memory maps
     maps = qbdi_getCurrentProcessMaps(false, &maps_count);
@@ -206,8 +210,9 @@ void get_segments() {
     // Store the segments
     for (i = 0; i < maps_count; i++) {
         if (maps[i].permission >= QBDI_PF_EXEC && maps[i].end < MIN_MAPPED_ADDRESS) {
-            segments[i].start = maps[i].start;
-            segments[i].end = maps[i].end;
+            segments[j].start = maps[i].start;
+            segments[j].end = maps[i].end;
+            j++;
         }
     }
 }
