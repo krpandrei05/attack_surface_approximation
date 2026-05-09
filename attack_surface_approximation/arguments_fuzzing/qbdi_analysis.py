@@ -121,6 +121,14 @@ class QBDIAnalysis:
             f"sudo chmod 555 {self.__configuration.CONTAINER_EXECUTABLE}"
         )
 
+        # Ensure the results directory is writable by everyone
+        self.__container.exec_run(
+            f"mkdir -p {self.__configuration.CONTAINER_RESULTS_FOLDER}"
+        )
+        self.__container.exec_run(
+            f"sudo chmod 777 {self.__configuration.CONTAINER_RESULTS_FOLDER}"
+        )
+
         self.__container.exec_run(
             "cmake .",
             workdir=self.__configuration.CONTAINER_SO_FOLDER,
@@ -187,7 +195,12 @@ class QBDIAnalysis:
         raw_result = self.__build_and_run_analyze_command(
             argument, timeout_retry
         )
-        print(raw_result.output)  # TODO: remove
+
+        # Ensure the result file is readable by the host user
+        argument_identifier = argument.to_hex_id()
+        self.__container.exec_run(
+            f"chmod 666 {os.path.join(self.__configuration.CONTAINER_RESULTS_FOLDER, argument_identifier)}"
+        )
 
         result_filename = self.__get_analysis_result_filename(argument)
         bbs_count, bbs_hash, uses_file = self.__parse_raw_output(
