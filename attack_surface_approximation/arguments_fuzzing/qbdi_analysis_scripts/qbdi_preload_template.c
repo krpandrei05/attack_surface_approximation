@@ -173,10 +173,14 @@ int qbdipreload_on_main(int argc, char **argv) {
 
     // Copy the arguments
     for (i = 1; i < argc; i++) {
+        if (strlen(command_line) + strlen(argv[i]) + 2 >= MAX_ARGS_LENGTH)
+            break;
         strcat(command_line, argv[i]);
         strcat(command_line, " ");
     }
-    command_line[strlen(command_line) - 1] = '\0';
+    if (argc > 1 && strlen(command_line) > 0) {
+        command_line[strlen(command_line) - 1] = '\0';
+    }
 
     return QBDIPRELOAD_NOT_HANDLED;
 }
