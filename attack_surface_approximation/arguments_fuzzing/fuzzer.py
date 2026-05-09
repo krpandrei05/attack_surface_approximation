@@ -56,11 +56,15 @@ class ArgumentsFuzzer:
         for argument in arguments:
             analysis_result = self.analysis.analyze(argument)
 
-            yield analysis_result.bbs_hash
+            if analysis_result.bbs_hash is not None:
+                yield analysis_result.bbs_hash
 
     def __check_if_argument_is_valid(
         self, argument: ArgumentsPair, result: QBDIAnalysis
-    ) -> None:
+    ) -> bool:
+        if result.bbs_hash is None:
+            return False
+
         if (
             argument.get_roles_based_on_analysis(result, self.baseline_hashes)
             and result.bbs_hash not in self.old_hashes  # noqa: W503
@@ -91,7 +95,8 @@ class ArgumentsFuzzer:
             # generates a different hash than the baseline ones, it will be detected
             # as a false flag because of the sequence generation: --flag first, --flag
             # <string> afterwards.
-            self.old_hashes.append(result.bbs_hash)
+            if result.bbs_hash is not None:
+                self.old_hashes.append(result.bbs_hash)
 
             self.arguments_generator.update_last_analysis_result(result)
 
