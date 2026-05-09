@@ -54,6 +54,10 @@ def cli() -> None:
     ),
 )
 def generate(heuristic: str, output: str, top: int, elf: str = None) -> None:
+    if heuristic == "binary_pattern_matching" and elf is None:
+        print("[ERROR] The 'binary_pattern_matching' heuristic requires an ELF file. Please provide one using the --elf option.")
+        return
+        
     generator = ArgumentsGenerator()
     generator.generate(heuristic, elf)
     arguments_count = generator.dump(output, top_count=top)
