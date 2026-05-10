@@ -67,6 +67,11 @@ def generate(heuristic: str, output: str, top: int, elf: str = None) -> None:
     )
 
 
+def run_detection(elf: str) -> typing.List[InputStreams]:
+    detector = InputStreamsDetector(elf)
+    return detector.detect_all()
+
+
 @cli.command(
     help="Statically detect what input streams are used by an executable."
 )
@@ -77,13 +82,11 @@ def generate(heuristic: str, output: str, top: int, elf: str = None) -> None:
     help="ELF Executable",
 )
 def detect(elf: str) -> None:
-    detector = InputStreamsDetector(elf)
-    streams = detector.detect_all()
-
+    streams = run_detection(elf)
     print_detected_streams(streams)
 
 
-def print_detected_streams(streams: InputStreams) -> None:
+def print_detected_streams(streams: typing.List[InputStreams]) -> None:
     if not any(streams):
         print_no_detected_stream()
     else:
@@ -94,11 +97,20 @@ def print_no_detected_stream() -> None:
     print("No input mechanism was detected for the given program.")
 
 
-def print_multiple_detected_streams(streams: dict) -> None:
+def print_multiple_detected_streams(streams: typing.List[InputStreams]) -> None:
     print("Several input mechanisms were detected for the given program:\n")
 
     table = build_detected_streams_table(streams)
     print(table)
+
+
+def run_fuzzing(elf: str, dictionary: str) -> typing.List[ArgumentsPair]:
+    generator = ArgumentsGenerator()
+    generator.load(dictionary)
+    possible_arguments = generator.get_arguments()
+
+    fuzzer = ArgumentsFuzzer(elf, possible_arguments)
+    return fuzzer.get_all_valid_arguments()
 
 
 @cli.command(help="Fuzz the arguments of an executable.")
@@ -115,13 +127,7 @@ def print_multiple_detected_streams(streams: dict) -> None:
     help="Arguments dictionary",
 )
 def fuzz(elf: str, dictionary: str) -> None:
-    generator = ArgumentsGenerator()
-    generator.load(dictionary)
-    possible_arguments = generator.get_arguments()
-
-    fuzzer = ArgumentsFuzzer(elf, possible_arguments)
-    actual_arguments = fuzzer.get_all_valid_arguments()
-
+    actual_arguments = run_fuzzing(elf, dictionary)
     print_arguments(actual_arguments)
 
 
@@ -161,7 +167,7 @@ def build_arguments_table(arguments: typing.List[ArgumentsPair]) -> Table:
     return table
 
 
-def build_detected_streams_table(streams: dict) -> Table:
+def build_detected_streams_table(streams: typing.List[InputStreams]) -> Table:
     table = Table()
 
     table.add_column("Stream")
@@ -187,11 +193,13 @@ def build_detected_streams_table(streams: dict) -> Table:
     required=True,
     help="Arguments dictionary",
 )
-@click.pass_context
-def analyze(ctx: click.Context, elf: str, dictionary: str) -> None:
-    ctx.invoke(detect, elf=elf)
+def analyze(elf: str, dictionary: str) -> None:
+    streams = run_detection(elf)
+    actual_arguments = run_fuzzing(elf, dictionary)
+
+    print_detected_streams(streams)
     print("")
-    ctx.invoke(fuzz, elf=elf, dictionary=dictionary)
+    print_arguments(actual_arguments)
 
 
 def main() -> None:
