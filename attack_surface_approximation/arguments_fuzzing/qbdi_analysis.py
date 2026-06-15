@@ -142,6 +142,16 @@ class QBDIAnalysis:
             workdir=self.__configuration.CONTAINER_SO_FOLDER,
         )
 
+    def produces_stderr(self, argument: ArgumentsPair) -> bool:
+        stringified_arguments = argument.to_str()
+        result = self.__container.exec_run(
+            f"timeout {self.timeout} {self.__configuration.CONTAINER_EXECUTABLE} {stringified_arguments}",
+            workdir="/home/docker",
+            demux=True,
+        )
+        _, stderr = result.output
+        return bool(stderr)
+
     def create_temp_file_inside_container(self) -> str:
         self.__container.exec_run(
             f"touch {self.__configuration.CONTAINER_TEMP_FILE}"

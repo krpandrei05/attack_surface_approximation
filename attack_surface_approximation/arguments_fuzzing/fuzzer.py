@@ -3,6 +3,7 @@ import typing
 from attack_surface_approximation.arguments_fuzzing.arguments_types import (
     ArgumentsPair,
 )
+from commons.arguments import ArgumentRole
 from attack_surface_approximation.arguments_fuzzing.fuzzing_sequence_generator import (
     FuzzingSequenceGenerator,
 )
@@ -100,5 +101,11 @@ class ArgumentsFuzzer:
 
             self.arguments_generator.update_last_analysis_result(result)
 
+    def __is_false_positive(self, argument: ArgumentsPair) -> bool:
+        if ArgumentRole.FLAG not in argument.valid_roles and ArgumentRole.STRING_ENABLER not in argument.valid_roles:
+            return False
+        return self.analysis.produces_stderr(argument)
+
     def get_all_valid_arguments(self) -> typing.List[ArgumentsPair]:
-        return list(self.get_valid_argument())
+        candidates = list(self.get_valid_argument())
+        return [a for a in candidates if not self.__is_false_positive(a)]
