@@ -4,6 +4,9 @@ import typing
 from elftools.elf.elffile import ELFError, ELFFile
 from pycparser import c_parser
 
+import re
+from pycparser.plyparser import ParseError
+
 from attack_surface_approximation.configuration import Configuration
 from attack_surface_approximation.exceptions import (
     ELFNotFoundException,
@@ -115,13 +118,17 @@ class InputStreamsDetector:
         )
 
     def uses_arguments(self) -> bool:
-        parser = c_parser.CParser()
-        ast = parser.parse(self.__main_decompilation)
+        try: 
+            parser = c_parser.CParser()
+            ast = parser.parse(self.__main_decompilation)
 
-        visitor = ParametersCheckVisitor()
-        visitor.visit(ast)
+            visitor = ParametersCheckVisitor()
+            visitor.visit(ast)
 
-        return visitor.are_parameters_used()
+            return visitor.are_parameters_used()
+        except ParseError:
+            return bool(re.search(r"\bargc\b|\bargv\b", self.__main_decompilation))
+
 
     def __detect_all(self) -> typing.Generator[InputStreams, None, None]:
         if self.uses_env():
