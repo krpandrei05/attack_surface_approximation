@@ -45,6 +45,11 @@ Examples of arguments dictionaries can be found in `examples/dictionaries`:
 - **Binary compatibility for fuzzing**: the argument fuzzer runs inside a Docker container based on Ubuntu 18.04 (GLIBC 2.27). Binaries compiled on modern systems that require a newer GLIBC version will fail to execute inside the container. To work around this, compile the target binary inside the QBDI Docker container itself before fuzzing.
 - **Incomplete argument detection**: flags that trigger identical QBDI basic block paths (e.g., multiple simple flags that all resolve to a `break` in a switch statement) will share the same hash. Only the first occurrence is reported; subsequent flags with the same hash are suppressed by the deduplication mechanism.
 - **False positive filtering relies on `getopt` stderr reporting**: the module filters out invalid options by checking whether the binary writes to stderr when run with that argument — standard `getopt` behavior. Programs that use custom option parsers and suppress error output may still produce false positives.
+- **External library dependencies**: the QBDI Docker container (Ubuntu 18.04 minimal) does not include non-standard system libraries (e.g., `libmysqlclient`, `libpam`). Binaries that depend on such libraries at runtime cannot be instrumented by the fuzzer, and cannot be compiled inside the container.
+- **Dictionary-dependent fuzzing**: the fuzzer can only discover arguments that appear in the provided dictionary. Arguments not covered by the dictionary will never be detected, regardless of their effect on the program.
+- **No combined argument testing**: each argument is tested individually. Programs that change execution flow only when specific argument combinations are provided (e.g., `-f file -v`) will not have those combinations detected.
+- **Runtime environment requirements**: binaries that require a specific environment to run correctly (elevated privileges, particular files or sockets present, specific environment variables set) may produce incorrect or incomplete fuzzing results.
+- **Indirect input not detected**: programs that receive input through child processes, pipes, or `popen` calls are not covered by the static detection heuristics.
 
 ## How It Works
 
