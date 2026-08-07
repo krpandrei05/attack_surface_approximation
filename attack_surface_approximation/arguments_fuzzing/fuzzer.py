@@ -2,6 +2,7 @@ import typing
 
 from attack_surface_approximation.arguments_fuzzing.arguments_types import (
     ArgumentsPair,
+    ArgumentStringArgument,
 )
 from commons.arguments import ArgumentRole
 from attack_surface_approximation.arguments_fuzzing.fuzzing_sequence_generator import (
@@ -13,6 +14,7 @@ from .qbdi_analysis import QBDIAnalysis
 
 ANALYSIS_TIMEOUT = 3
 CANARY_STRING = "string"
+CANARY_STRING_ALTERNATIVE = "alternative"
 RANDOM_ARGUMENTS_COUNT = 10
 
 
@@ -92,20 +94,39 @@ class ArgumentsFuzzer:
             if self.__check_if_argument_is_valid(argument, result):
                 yield argument
 
-            # Ensures the deduplication of --flag and --flag <string>. If the latter
-            # generates a different hash than the baseline ones, it will be detected
-            # as a false flag because of the sequence generation: --flag first, --flag
-            # <string> afterwards.
+            # Deduplicates arguments with identical execution hashes (e.g. -v and --verbose).
+            # Also short-circuits STRING_ENABLER candidates where hash(flag, string) == hash(flag),
+            # avoiding two extra QBDI runs otherwise handled by __ignores_string_value.
             if result.bbs_hash is not None:
                 self.old_hashes.append(result.bbs_hash)
 
             self.arguments_generator.update_last_analysis_result(result)
 
-    def __is_false_positive(self, argument: ArgumentsPair) -> bool:
+    # Filters arguments that cause the binary to write to stderr — binary actively rejects them.
+    def __produces_stderr(self, argument: ArgumentsPair) -> bool:
         if ArgumentRole.FLAG not in argument.valid_roles and ArgumentRole.STRING_ENABLER not in argument.valid_roles:
             return False
         return self.analysis.produces_stderr(argument)
 
+    # Detects STRING_ENABLERs where the string value is irrelevant: runs with two different
+    # canary strings and compares hashes — equal hashes mean the string is ignored by the binary.
+    def __ignores_string_value(self, argument: ArgumentsPair) -> bool:
+        if ArgumentRole.STRING_ENABLER not in argument.valid_roles:
+            return False
+
+        r1 = self.analysis.analyze(ArgumentStringArgument(argument.first, CANARY_STRING))
+        r2 = self.analysis.analyze(ArgumentStringArgument(argument.first, CANARY_STRING_ALTERNATIVE))
+        
+        return (
+            r1.bbs_hash is not None
+            and r2.bbs_hash is not None
+            and r1.bbs_hash == r2.bbs_hash
+        )
+
     def get_all_valid_arguments(self) -> typing.List[ArgumentsPair]:
         candidates = list(self.get_valid_argument())
-        return [a for a in candidates if not self.__is_false_positive(a)]
+        return [
+            a for a in candidates 
+            if not self.__produces_stderr(a)
+            and not self.__ignores_string_value(a)   
+        ]
