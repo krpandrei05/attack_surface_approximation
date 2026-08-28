@@ -50,6 +50,7 @@ Examples of arguments dictionaries can be found in `examples/dictionaries`:
 - **No combined argument testing**: each argument is tested individually. Programs that change execution flow only when specific argument combinations are provided (e.g., `-f file -v`) will not have those combinations detected.
 - **Runtime environment requirements**: binaries that require a specific environment to run correctly (elevated privileges, particular files or sockets present, specific environment variables set) may produce incorrect or incomplete fuzzing results.
 - **Indirect input not detected**: programs that receive input through child processes, pipes, or `popen` calls are not covered by the static detection heuristics.
+- **Static STDIN/FILES detection is over-approximate**: the static detector checks whether the binary's imported function table (PLT) contains known I/O functions (e.g. `fread`, `fgets`, `read`). Because these functions accept an arbitrary file descriptor, a binary that reads exclusively from a file or device (e.g. `/dev/urandom`) using `fread` will be incorrectly flagged as reading from standard input. Resolving this accurately would require data-flow analysis to determine which file descriptor is passed at each call site — not feasible at PLT level. The dynamic QBDI pass corrects any such false positives in the final `analyze` output.
 
 ## How It Works
 
