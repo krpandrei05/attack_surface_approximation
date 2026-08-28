@@ -38,9 +38,6 @@ class ParametersCheckVisitor(c_parser.c_ast.NodeVisitor):
         if "name" in attrs and getattr(obj, "name") in self.__parameters_names:
             self.__are_parameters_used = True
 
-        for attr in attrs:
-            self.__check_parameters_used(attr)
-
     def are_parameters_used(self) -> bool:
         return self.__are_parameters_used
 
