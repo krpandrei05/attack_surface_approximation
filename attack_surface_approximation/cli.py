@@ -109,8 +109,8 @@ def run_fuzzing(elf: str, dictionary: str) -> typing.List[ArgumentsPair]:
     generator.load(dictionary)
     possible_arguments = generator.get_arguments()
 
-    fuzzer = ArgumentsFuzzer(elf, possible_arguments)
-    return fuzzer.get_all_valid_arguments()
+    with ArgumentsFuzzer(elf, possible_arguments) as fuzzer:
+        return fuzzer.get_all_valid_arguments()
 
 
 @cli.command(help="Fuzz the arguments of an executable.")

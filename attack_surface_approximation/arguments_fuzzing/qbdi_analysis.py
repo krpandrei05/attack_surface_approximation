@@ -57,8 +57,12 @@ class QBDIAnalysis:
         self.__docker_client = docker.from_env()
         self.__create_container()
 
-    # def __del__(self) -> None:
-    #     self.__container.remove(force=True)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.__container.remove(force=True)
+        return False
 
     def __touch_nested_folder(self, folder_name: str) -> None:
         try:

@@ -55,6 +55,12 @@ class ArgumentsFuzzer:
         self.baseline_hashes = self.__generate_baseline_hashes()
         self.old_hashes = []
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self.analysis.__exit__(exc_type, exc_val, exc_tb)
+
     def __generate_baseline_hashes(self) -> typing.List[str]:
         arguments = self.arguments_generator.generate_baseline_arguments(
             RANDOM_ARGUMENTS_COUNT
