@@ -167,6 +167,7 @@ class QBDIAnalysis:
         return self.__container.exec_run(
             command,
             workdir="/home/docker",
+            tty=True,
         )
 
     def __build_analyze_command(
@@ -235,7 +236,7 @@ class QBDIAnalysis:
         if timeout_retry and not is_timeout:
             return True
         elif not timeout_retry and is_timeout:
-            return self.analyze(argument, timeout_retry=True)
+            return self.analyze(argument, timeout_retry=True).uses_stdin
         else:
             return False
 
