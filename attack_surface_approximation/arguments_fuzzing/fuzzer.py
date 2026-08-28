@@ -26,6 +26,8 @@ class ArgumentsFuzzer:
     arguments_generator: FuzzingSequenceGenerator
     baseline_hashes: typing.List[str]
     old_hashes: typing.List[str]
+    baseline_uses_stdin: bool
+    baseline_uses_file: bool
 
     def __init__(
         self, executable_filename: str, dictionary: typing.List[str]
@@ -48,19 +50,31 @@ class ArgumentsFuzzer:
             CANARY_STRING,
             generate_random_baseline_arguments=random_arguments_config,
         )
-        self.baseline_hashes = list(self.__generate_baseline_hashes())
+        self.baseline_uses_stdin = False
+        self.baseline_uses_file = False
+        self.baseline_hashes = self.__generate_baseline_hashes()
         self.old_hashes = []
 
-    def __generate_baseline_hashes(self) -> typing.Generator[str, None, None]:
+    def __generate_baseline_hashes(self) -> typing.List[str]:
         arguments = self.arguments_generator.generate_baseline_arguments(
             RANDOM_ARGUMENTS_COUNT
         )
+
+        hashes = []
+        first = True
 
         for argument in arguments:
             analysis_result = self.analysis.analyze(argument)
 
             if analysis_result.bbs_hash is not None:
-                yield analysis_result.bbs_hash
+                hashes.append(analysis_result.bbs_hash)
+            if first:
+                self.baseline_uses_stdin = analysis_result.uses_stdin
+                self.baseline_uses_file = analysis_result.uses_file
+                first = False
+
+        return hashes
+                
 
     def __check_if_argument_is_valid(
         self, argument: ArgumentsPair, result: QBDIAnalysis
@@ -76,7 +90,7 @@ class ArgumentsFuzzer:
 
         return False
 
-    def get_valid_argument(
+    def __get_valid_argument(
         self,
     ) -> typing.Generator[ArgumentsPair, None, None]:
         arguments = self.arguments_generator.generate_fuzzing_arguments(
@@ -123,10 +137,24 @@ class ArgumentsFuzzer:
             and r1.bbs_hash == r2.bbs_hash
         )
 
+    # Binary blocks on stdin regardless of any flag — flag didn't enable stdin reading.
+    def __reads_stdin_regardless(self, argument: ArgumentsPair) -> bool:
+        if ArgumentRole.STDIN_ENABLER not in argument.valid_roles:
+            return False
+        return self.baseline_uses_stdin
+
+    # Binary opens files regardless of any flag — flag didn't enable file access.
+    def __opens_files_regardless(self, argument: ArgumentsPair) -> bool:
+        if ArgumentRole.FILE_ENABLER not in argument.valid_roles:
+            return False
+        return self.baseline_uses_file
+
     def get_all_valid_arguments(self) -> typing.List[ArgumentsPair]:
-        candidates = list(self.get_valid_argument())
+        candidates = list(self.__get_valid_argument())
         return [
-            a for a in candidates 
+            a for a in candidates
             if not self.__produces_stderr(a)
-            and not self.__ignores_string_value(a)   
+            and not self.__ignores_string_value(a)
+            and not self.__reads_stdin_regardless(a)
+            and not self.__opens_files_regardless(a)
         ]
