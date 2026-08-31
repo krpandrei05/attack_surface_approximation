@@ -41,7 +41,7 @@ UT_array *blocks;
 char command_line[MAX_ARGS_LENGTH] = {'\0'};
 char fds_location[20] = {'\0'};
 pid_t pid;
-char start_trace = 0, uses_canaries = 0;
+char start_trace = 0, uses_canaries = 0, set_hash_mode = 0;
 
 QBDIPRELOAD_INIT;
 
@@ -110,6 +110,12 @@ static VMAction show_basic_block_callback(VMInstanceRef vm, const VMState* vmSta
     // Compute the abstract address
     start_address -= segments[parent_segment].start;
     abstract_address = (parent_segment << 24) + start_address;
+    if (set_hash_mode) {
+        int *q;
+        for (q = (int*)utarray_front(blocks); q != NULL; q = (int*)utarray_next(blocks, q)) {
+            if (*q == abstract_address) return QBDI_CONTINUE;
+        }
+    }
     utarray_push_back(blocks, &abstract_address);
 
     return QBDI_CONTINUE;
@@ -175,6 +181,7 @@ int qbdipreload_on_main(int argc, char **argv) {
 
     // Start the tracing
     start_trace = 1;
+    set_hash_mode = (getenv("USE_SET_HASH") != NULL);
 
     // Copy the arguments
     for (i = 1; i < argc; i++) {

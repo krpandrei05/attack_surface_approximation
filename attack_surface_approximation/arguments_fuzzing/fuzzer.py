@@ -3,6 +3,7 @@ import typing
 from attack_surface_approximation.arguments_fuzzing.arguments_types import (
     ArgumentsPair,
     ArgumentStringArgument,
+    NoneArgument,
 )
 from commons.arguments import ArgumentRole
 from attack_surface_approximation.arguments_fuzzing.fuzzing_sequence_generator import (
@@ -28,6 +29,7 @@ class ArgumentsFuzzer:
     old_hashes: typing.List[str]
     baseline_uses_stdin: bool
     baseline_uses_file: bool
+    is_nondeterministic: bool
 
     def __init__(
         self, executable_filename: str, dictionary: typing.List[str]
@@ -54,6 +56,9 @@ class ArgumentsFuzzer:
         self.baseline_uses_file = False
         self.baseline_hashes = self.__generate_baseline_hashes()
         self.old_hashes = []
+        self.is_nondeterministic = self.__detect_nondeterminism()
+        if self.is_nondeterministic:
+            self.baseline_hashes = self.__generate_baseline_hashes(set_hash_mode=True)
 
     def __enter__(self):
         return self
@@ -61,7 +66,7 @@ class ArgumentsFuzzer:
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self.analysis.__exit__(exc_type, exc_val, exc_tb)
 
-    def __generate_baseline_hashes(self) -> typing.List[str]:
+    def __generate_baseline_hashes(self, set_hash_mode: bool = False) -> typing.List[str]:
         arguments = self.arguments_generator.generate_baseline_arguments(
             RANDOM_ARGUMENTS_COUNT
         )
@@ -70,7 +75,7 @@ class ArgumentsFuzzer:
         first = True
 
         for argument in arguments:
-            analysis_result = self.analysis.analyze(argument)
+            analysis_result = self.analysis.analyze(argument, set_hash_mode=set_hash_mode)
 
             if analysis_result.bbs_hash is not None:
                 hashes.append(analysis_result.bbs_hash)
@@ -80,6 +85,14 @@ class ArgumentsFuzzer:
                 first = False
 
         return hashes
+
+    def __detect_nondeterminism(self) -> bool:
+        arg = NoneArgument()
+        r1 = self.analysis.analyze(arg)
+        r2 = self.analysis.analyze(arg)
+        if r1.bbs_hash is None or r2.bbs_hash is None:
+            return False
+        return r1.bbs_hash != r2.bbs_hash
                 
 
     def __check_if_argument_is_valid(
@@ -109,7 +122,7 @@ class ArgumentsFuzzer:
             except StopIteration:
                 break
 
-            result = self.analysis.analyze(argument)
+            result = self.analysis.analyze(argument, set_hash_mode=self.is_nondeterministic)
 
             if self.__check_if_argument_is_valid(argument, result):
                 yield argument
@@ -134,8 +147,8 @@ class ArgumentsFuzzer:
         if ArgumentRole.STRING_ENABLER not in argument.valid_roles:
             return False
 
-        r1 = self.analysis.analyze(ArgumentStringArgument(argument.first, CANARY_STRING))
-        r2 = self.analysis.analyze(ArgumentStringArgument(argument.first, CANARY_STRING_ALTERNATIVE))
+        r1 = self.analysis.analyze(ArgumentStringArgument(argument.first, CANARY_STRING), set_hash_mode=self.is_nondeterministic)
+        r2 = self.analysis.analyze(ArgumentStringArgument(argument.first, CANARY_STRING_ALTERNATIVE), set_hash_mode=self.is_nondeterministic)
         
         return (
             r1.bbs_hash is not None
