@@ -182,6 +182,6 @@ streams_list = detector.detect_all()
 ```python
 from attack_surface_approximation.arguments_fuzzing import ArgumentsFuzzer
 
-fuzzer = ArgumentsFuzzer(elf_filename, fuzzed_arguments)
-detected_arguments = fuzzer.get_all_valid_arguments()
+with ArgumentsFuzzer(elf_filename, fuzzed_arguments) as fuzzer:
+    detected_arguments = fuzzer.get_all_valid_arguments()
 ```
