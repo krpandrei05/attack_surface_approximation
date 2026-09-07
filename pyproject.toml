@@ -6,7 +6,7 @@ version = "0.1.0"
 
 [tool.poetry.dependencies]
 commons = { path = "../commons", develop = false }
-python = "==3.12.7"
+python = "^3.10"
 pycparser = "==2.23"
 pyelftools = "==0.29"
 docker = "==7.1.0"
