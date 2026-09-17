@@ -141,7 +141,7 @@ class QBDIAnalysis:
             f"mkdir -p {self.__configuration.CONTAINER_RESULTS_FOLDER}"
         )
         self.__container.exec_run(
-            f"sudo chmod 777 {self.__configuration.CONTAINER_RESULTS_FOLDER}"
+            f"sudo chmod 1777 {self.__configuration.CONTAINER_RESULTS_FOLDER}"
         )
 
         self.__container.exec_run(
