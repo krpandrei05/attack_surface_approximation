@@ -148,18 +148,22 @@ class QBDIAnalysis:
             "rm -f CMakeCache.txt libqbdi_tracer.so",
             workdir=self.__configuration.CONTAINER_SO_FOLDER,
         )
-        self.__container.exec_run(
-            "cmake .",
-            workdir=self.__configuration.CONTAINER_SO_FOLDER,
+        self.__run_build_command("cmake .")
+        self.__run_build_command("make")
+        self.__run_build_command(
+            "gcc -shared -fPIC -m32 -o libdet_enforcer.so determinism_enforcer.c -ldl"
         )
-        self.__container.exec_run(
-            "make",
-            workdir=self.__configuration.CONTAINER_SO_FOLDER,
+
+    def __run_build_command(self, command: str) -> None:
+        result = self.__container.exec_run(
+            command, workdir=self.__configuration.CONTAINER_SO_FOLDER
         )
-        self.__container.exec_run(
-            "gcc -shared -fPIC -m32 -o libdet_enforcer.so determinism_enforcer.c -ldl",
-            workdir=self.__configuration.CONTAINER_SO_FOLDER,
-        )
+        if result.exit_code != 0:
+            raise RuntimeError(
+                f"Command '{command}' failed inside the QBDI container "
+                f"(exit code {result.exit_code}): "
+                f"{result.output.decode(errors='replace')}"
+            )
 
     def produces_stderr(self, argument: ArgumentsPair) -> bool:
         stringified_arguments = argument.to_str()
