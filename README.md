@@ -74,7 +74,7 @@ The argument fuzzer uses Docker and QBDI to detect basic block coverage.
    ```
 4. Ensure the Docker API is accessible by:
    - Running the module as `root`; or
-   - Changing the Docker socket permissions (unsecure approach) via `chmod 777 /var/run/docker.sock`.
+   - Adding your user to the `docker` group: `sudo usermod -aG docker $USER` (log out and back in for it to take effect).
 
 ## Usage
 
