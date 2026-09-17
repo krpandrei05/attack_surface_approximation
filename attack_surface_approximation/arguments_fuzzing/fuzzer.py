@@ -11,7 +11,7 @@ from attack_surface_approximation.arguments_fuzzing.fuzzing_sequence_generator i
 )
 from attack_surface_approximation.configuration import Configuration
 
-from .qbdi_analysis import QBDIAnalysis
+from .qbdi_analysis import QBDIAnalysis, QBDIAnalysisResult
 
 ANALYSIS_TIMEOUT = 3
 CANARY_STRING = "string"
@@ -96,7 +96,7 @@ class ArgumentsFuzzer:
                 
 
     def __check_if_argument_is_valid(
-        self, argument: ArgumentsPair, result: QBDIAnalysis
+        self, argument: ArgumentsPair, result: QBDIAnalysisResult
     ) -> bool:
         if result.bbs_hash is None:
             return False
