@@ -238,9 +238,10 @@ class QBDIAnalysis:
 
         # Ensure the result file is readable by the host user
         argument_identifier = argument.to_hex_id()
-        self.__container.exec_run(
-            f"chmod 666 {os.path.join(self.__configuration.CONTAINER_RESULTS_FOLDER, argument_identifier)}"
+        result_path = os.path.join(
+            self.__configuration.CONTAINER_RESULTS_FOLDER, argument_identifier
         )
+        self.__container.exec_run(f"test -f {result_path} && chmod 644 {result_path}")
 
         result_filename = self.__get_analysis_result_filename(argument)
         bbs_count, bbs_hash, uses_file = self.__parse_raw_output(
