@@ -116,9 +116,12 @@ class ArgumentsFuzzer:
             self.baseline_hashes
         )
 
+        result = None
         while True:
             try:
-                argument = next(arguments)
+                argument = (
+                    arguments.send(result) if result is not None else next(arguments)
+                )
             except StopIteration:
                 break
 
@@ -132,8 +135,6 @@ class ArgumentsFuzzer:
             # avoiding two extra QBDI runs otherwise handled by __ignores_string_value.
             if result.bbs_hash is not None:
                 self.old_hashes.append(result.bbs_hash)
-
-            self.arguments_generator.update_last_analysis_result(result)
 
     # Filters arguments that cause the binary to write to stderr — binary actively rejects them.
     def __produces_stderr(self, argument: ArgumentsPair) -> bool:
