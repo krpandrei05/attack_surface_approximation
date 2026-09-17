@@ -83,7 +83,7 @@ The argument fuzzer uses Docker and QBDI to detect basic block coverage.
 #### Arguments Dictionary Generation
 
 ```
-➜ poetry run attack_surface_approximation generate --heuristic man --output args.txt --top 10
+➜ poetry run attack_surface_approximation generate --heuristic man_parsing --output args.txt --top 10
 Successfully generated dictionary with 10 arguments
 ➜ cat args.txt
 --and
