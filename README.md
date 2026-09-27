@@ -67,12 +67,18 @@ The argument fuzzer uses Docker and QBDI to detect basic block coverage.
 
 1. Ensure you have Docker installed.
 2. Install the required Python 3 packages via `poetry install`.
-3. Build the QBDI Docker image:
+3. Initialize the Ghidra Docker submodule and build its image:
+   ```
+   cd commons && git submodule update --init commons/ghidra/docker && cd ..
+   cd commons/commons/ghidra/docker
+   docker build -t ghidra .
+   ```
+4. Build the QBDI Docker image:
    ```
    cd commons/commons/qbdi/docker
    docker build -t opencrs/qbdi .
    ```
-4. Ensure the Docker API is accessible by:
+5. Ensure the Docker API is accessible by:
    - Running the module as `root`; or
    - Adding your user to the `docker` group: `sudo usermod -aG docker $USER` (log out and back in for it to take effect).
 
